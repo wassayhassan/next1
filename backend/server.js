@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 var cors = require('cors');
 const { Server } = require("socket.io");
 
+
 const port = 8880;
 const app = require('express')();
 app.use(cors());
@@ -64,13 +65,14 @@ require("./db/db.js");
 app.use("/api", require(path.join(__dirname, "./apis/api.js")));
 
 //server frontend
+console.log("hello");
 
-if(process.env.NODE_ENV == 'production'){
+  console.log("hello");
   app.use(express.static(path.join(__dirname, '../client/build')));
   app.get('*', (req, res)=> {
     res.sendFile(path.resolve(__dirname, '../','client', 'build', 'index.html'));
   })
-}
+
 
 
 // app.listen(port, ()=> {console.log(`listening at port ${port}`)});
