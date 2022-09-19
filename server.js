@@ -105,7 +105,7 @@ app.use('/uploads/',express.static('uploads'));
 require("./db/db.js");
 app.use("/api", require(path.join(__dirname, "./apis/api.js")));
 
-//clen files
+//clean files
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'client', 'build')));
 
