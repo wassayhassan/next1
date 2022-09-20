@@ -84,13 +84,6 @@ io.on('connection', (socket) => {
       })
 });
 
-server.listen((process.env.PORT || port), ()=> {
-  console.log(`server listenenig at port ${port} `);
-});
-app.get('/', (req, res)=> {
-  res.send('Server running')
-})
-
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
@@ -113,5 +106,7 @@ if (process.env.NODE_ENV === 'production') {
       res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
   });
 }
-
+server.listen((process.env.PORT || port), ()=> {
+  console.log(`server listenenig at port ${port} `);
+});
 

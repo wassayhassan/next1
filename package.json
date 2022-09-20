@@ -18,8 +18,8 @@
   "scripts": {
     "start": "node server",
     "server": "nodemon server",
-    "client": "npm run start --prefix client",
-    "heroku-postbuild": "npm install --prefix client && npm run build --prefix client"
+    "clienta": "npm run start --prefix client",
+    "heroku-postbuild": "npm install --prefix clienta && npm run build --prefix clienta"
   },
   "name": "backend",
   "version": "1.0.0",
