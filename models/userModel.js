@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     password: String,
     activeStatus: String,
     verifiedStatus: String,
+    adminStatus: String,
     profilepic: String,
     headerpic: String,
     friends: [

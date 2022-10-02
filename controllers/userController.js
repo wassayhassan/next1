@@ -5,10 +5,11 @@ const jwt = require("jsonwebtoken");
 const cookie = require("cookie");
 const path = require("path");
 const bcrypt = require("bcrypt");
+const nodemailer = require("nodemailer");
 const userModel = require(path.join(__dirname, "../models/userModel.js"));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-var cookieParser = require('cookie-parser')
+var cookieParser = require('cookie-parser');
 app.use(cookieParser());
 
 async function getUserData(req, res){
@@ -39,9 +40,18 @@ async function logoutUser(req, res){
 async function getUserToken(req, res){
     console.log('user toke funcrino called');
     let token = req.cookies.jwt_secure;
-    console.log(token);
     if(token){
-        res.status(201).json(token);
+        let verify = jwt.verify(token, process.env.SECRET_KEY);
+        if(verify){
+            const user = await userModel.findOne({_id: verify._id});
+            if(user){
+                res.status(201).json({token: token, userData: user});
+            }else{
+                res.status(201).status(null);
+            }
+        }else{
+           res.status(201).json(null);
+        }
     }else{
         res.status(201).json(null);
     }
@@ -62,7 +72,7 @@ async function userLogin(req,res) {
             expires: new Date(Date.now() + 86400000),
             httpOnly: true
            });
-        res.status(201).json(token);   
+        res.status(201).json({token: token, userData: user});   
         
         //es.json({status: 'ok', user: 'true', passwordmatch: "true"});
      }else{
@@ -86,7 +96,8 @@ async function userRegister(req, res){
         email: req.body.email,
         password: req.body.password,
         activeStatus: "true",
-        verifiedStatus: "false"
+        verifiedStatus: "false",
+        adminStatus: 'false'
     });
     console.log(user);
     user.save().then((response)=> {
@@ -166,5 +177,159 @@ async function friendsAdd(req, res){
       
     }
 }
+const  removeFriend = async(req, res)=> {
+    let friendid = req.body.id
+    
+    let token = req.cookies.jwt_secure;
+    if(token){
+      let verify = jwt.verify(token, process.env.SECRET_KEY);
+      if(verify){
+        const user = await userModel.findOne({_id: verify._id});
+        if(user){
+           let friends =  user.friends.filter(friend=> friend.friend !== friendid);
+            let updateduser = await userModel.findOneAndUpdate({_id: verify._id}, {friends});
+    
+            res.status(201).json(updateduser)
+        }
+      
+      }
+      
+    }
 
-module.exports = {userLogin, userRegister,logoutUser, getUserToken, getUserData, getDataById, profileUpdate, getSearchUsers, friendsAdd};
+}
+async function getAllUsers(req, res){
+    try {
+        let users = await userModel.find();
+        res.status(201).json(users);
+    } catch (err) {
+        res.status(500).json("err")
+    }
+    
+}
+async function getUsersByPage(req, res){
+    let reqPage = req.params.page;
+    let pagelimit = 10;
+    reqPage--;
+    try{
+      const totalRecords = await userModel.countDocuments();
+      const users = await userModel.find().limit(pagelimit).skip(reqPage * pagelimit);
+      let totalpages = Math.ceil(totalRecords / pagelimit);
+      reqPage++;
+      res.status(201).json({users: users,currentPage: reqPage, totalPages: totalpages})
+    }catch(err){
+        res.status(500).json(err)
+
+    }
+    
+}
+async function updateUserStatus(req, res){
+    try{
+        let data = {};
+        if(req.body.hasOwnProperty('activeStatus')){
+            let activeStatus = JSON.stringify(req.body.activeStatus);
+           data = {...data, 'activeStatus': activeStatus};
+        }
+        if(req.body.hasOwnProperty('verifiedStatus')){
+            let verifiedStatus = JSON.stringify(req.body.verifiedStatus);
+            data = {...data, 'verifiedStatus': verifiedStatus};
+        }
+        console.log(data)
+     const user = await userModel.findOneAndUpdate({_id: req.body.userid}, data);
+     if(user){
+        res.status(201).json(user);
+     }else{
+        res.status(500).json("No user Found");
+     }
+    }catch(err){
+        console.log(err)
+    }
+}
+
+async function getUserCount(req, res){
+  try{
+     const count = await userModel.countDocuments();
+     res.status(201).json(count);
+  }catch(err){
+    res.status(500).json(err);
+  }
+}
+
+async function getUserDataByToken(req, res){
+    let token = req.params.token;
+
+    if(token){
+      let verify = jwt.verify(token, process.env.SECRET_KEY);
+      if(verify){
+          const user = await userModel.findOne({_id: verify._id});
+          if(user){
+              res.status(201).json(user);
+          }else{
+              res.staus(201).json(null);
+          }
+      }else{
+          res.status(201).json(null);
+      }
+    }else{
+      res.status(201).json(null);
+  }
+}
+function sendCodeMail(recipient, code){
+    var transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'testweb010190@gmail.com',
+          pass: 'ksstmknsyucgtwxt'
+        }
+      });
+      var mailOptions = {
+        from: 'testweb010190@gmail.com',
+        to: recipient,
+        subject: 'User Account Verification',
+        text: `Your account verification code is:  ${code} `,
+        html: `Your account verification code is:<br /> <b> ${code}</b> `
+      };
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+        }
+      });
+
+} 
+
+  
+
+  
+
+async function sendVerificationCodeByEmail(req, res){
+    const randomCode = Math.floor(100000 + Math.random() * 900000);
+    let recipientmail = req.body.recipientmail;
+    sendCodeMail(recipientmail, randomCode);
+    res.status(201).json(randomCode);
+}
+async function updateVerificationStatus(req, res){
+   try{
+     userModel.findOneAndUpdate({_id: req.body.userid}, {verifiedStatus: req.body.verifiedStatus}).then((response)=> {
+        console.log(response);
+        res.status(201).json(response);
+
+     })
+   }catch(err){
+    res.status(201).json(err);
+   }
+}
+async function getUserFriends(req, res){
+    console.log(req.socket.remoteAddress)
+    console.log(req.params.id);
+    try{
+      const users = await userModel.find({"friends.friend":  req.params.id});
+      console.log(users);
+      res.status(200).json(users);
+    }catch(err){
+        console.log(err);
+        res.status(500).json(err);
+    }
+}
+
+module.exports = {userLogin, userRegister,logoutUser, getUserToken, getUserData, getDataById, profileUpdate, getSearchUsers, friendsAdd,  getAllUsers, getUserDataByToken, getUserCount, updateUserStatus,  getUsersByPage, sendVerificationCodeByEmail, updateVerificationStatus, getUserFriends, removeFriend};

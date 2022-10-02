@@ -8,7 +8,7 @@ require('dotenv').config({ path: path.resolve(__dirname, './config.env') });
 const port = 5000;
 const app = require('express')();
 app.use(cors());
-
+const { saveIp} = require("./controllers/ipController");
 let users = [];
 const addUser = (userId, socketId)=> {
   !users.some((user)=> user.userId === userId) &&
@@ -96,7 +96,7 @@ var cookieParser = require('cookie-parser')
 app.use(cookieParser())
 app.use('/uploads/',express.static('uploads'));
 require("./db/db.js");
-app.use("/api", require(path.join(__dirname, "./apis/api.js")));
+app.use("/api",saveIp ,require(path.join(__dirname, "./apis/api.js")));
 
 //clean files
 if (process.env.NODE_ENV === 'production') {

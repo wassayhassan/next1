@@ -56,7 +56,21 @@ async function findConversation(req, res){
         res.status(500).json(err);
     }
 }
+const deleteConversation = (req, res)=> {
+  try{
+    console.log(req.params.id);
+     conversationModel.findByIdAndRemove(req.params.id, (err, data)=> {
+        if(!err){
+            res.status(200).json({data, error: "false"});
+        }else{
+            res.status(500).json({err, error: "true"})
+        }
+     });
+  }catch(err){
+    res.status(500).json(err)
+  }
+}
 
 
 
-module.exports = {createCoversation, getCoverssationById, createMessage, findMsgsByConId, findConversation}
+module.exports = {createCoversation, getCoverssationById, createMessage, findMsgsByConId, findConversation, deleteConversation}
